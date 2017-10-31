@@ -1,13 +1,11 @@
 ## Project: Kinematics Pick & Place
----
-[//]: # (Image References)
 
+[//]: # (Image References)
 [image1]: ./misc_images/misc1.png
 [image2]: ./misc_images/misc3.png
 [image3]: ./misc_images/misc2.png
 
 ---
-
 ### Kinematic Analysis
 #### 1. Run the forward_kinematics demo and evaluate the kr210.urdf.xacro file to perform kinematic analysis of Kuka KR210 robot and derive its DH parameters.
 
