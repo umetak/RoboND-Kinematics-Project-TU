@@ -67,7 +67,7 @@ T0_3 = T0_1 * T1_2 * T2_3
 
 #### 3. Decouple Inverse Kinematics problem into Inverse Position Kinematics and inverse Orientation Kinematics; doing so derive the equations to calculate all individual joint angles.
 
-####Inverse Position Kinematics
+#### Inverse Position Kinematics
 We have the end-effector yaw-pitch-roll angles, therefore the end-effector center position can be computed.
 ```python
 def Rotation_matrix(r, p, y):
@@ -109,7 +109,7 @@ theta2 = pi/2 - angle_a - atan2(WC[2] - 0.75, sqrt(WC[0]**2 + WC[1]**2) - 0.35)
 theta3 = pi/2 -(angle_b + 0.036)
 ```
 
-####Inverse Orientation Kinematics
+#### Inverse Orientation Kinematics
 By using the rotation transformation matrix we can compute joint angles with LU decomposition.
 ```python
 R0_3 = T0_3[:3,:3]
