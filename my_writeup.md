@@ -2,14 +2,14 @@
 
 [//]: # (Image References)
 [image1]: ./misc_images/fig1.png
-[image2]: ./misc_images/misc3.png
-[image3]: ./misc_images/misc2.png
+[image2]: ./misc_images/fig2.png
+
 
 ---
 ### Kinematic Analysis
 #### 1. Run the forward_kinematics demo and evaluate the kr210.urdf.xacro file to perform kinematic analysis of Kuka KR210 robot and derive its DH parameters.
 
-The Kuka KR210 DH parameters were obtained by measurement in the forward_kinematics demo.
+The Kuka KR210 DH parameters were obtained by measuring data in the forward_kinematics demo.
 
 ![alt text][image1]
 
@@ -62,8 +62,14 @@ T6_EE = TF_matrix(alpha6, a6, d7, q7).subs(DH_table)
 
 T0EE = simplify(T0_1 * T1_2 * T2_3 * T3_4 * T4_5 * T5_6 * T6_EE)
 T0_3 = T0_1 * T1_2 * T2_3
+```
 
-# Extract rotation matrices from the transformation matrices
+
+#### 3. Decouple Inverse Kinematics problem into Inverse Position Kinematics and inverse Orientation Kinematics; doing so derive the equations to calculate all individual joint angles.
+
+####Inverse Position Kinematics
+We have the end-effector yaw-pitch-roll angles, therefore the end-effector center position can be computed.
+```python
 def Rotation_matrix(r, p, y):
 
     Rot_x = Matrix([[   1,      0,       0],
@@ -84,35 +90,58 @@ def Rotation_matrix(r, p, y):
 
     return ROT_EE
 
-r, p, y = symbols('r p y')
 ROT_EE = Rotation_matrix(r, p, y).subs({'r': roll, 'p': pitch, 'y': yaw})
+
+EE = Matrix([[px], [py], [pz]])
+WC = EE - 0.303 * ROT_EE[:,2]
+
+# Calculate joint angles using Geometric IK method
+theta1 = atan2(WC[1], WC[0])
+
+side_a = 1.501
+side_b = sqrt((sqrt(WC[0]**2 + WC[1]**2) - 0.35)**2 + (WC[2] - 0.75)**2)
+side_c = 1.25
+
+angle_a = acos((side_b**2 + side_c**2 - side_a**2) / (2 * side_b * side_c))
+angle_b = acos((side_a**2 + side_c**2 - side_b**2) / (2 * side_a * side_c))
+
+theta2 = pi/2 - angle_a - atan2(WC[2] - 0.75, sqrt(WC[0]**2 + WC[1]**2) - 0.35)
+theta3 = pi/2 -(angle_b + 0.036)
 ```
 
+####Inverse Orientation Kinematics
+By using the rotation transformation matrix we can compute joint angles with LU decomposition.
+```python
+R0_3 = T0_3[:3,:3]
+R0_3 = R0_3.evalf(subs={q1: theta1, q2: theta2, q3: theta3})
+R3_6 = R0_3.inv('LU') * ROT_EE
 
-#### 3. Decouple Inverse Kinematics problem into Inverse Position Kinematics and inverse Orientation Kinematics; doing so derive the equations to calculate all individual joint angles.
-
-Step1. Complete the DH table.
-Done.
-
-Step2. Find the location of the WC relative to the base frame.
-
-Step3. Find the join angles(q1, q2,	q3).
-
-Step4. Calculate (03)R via homogeneous transform.
-
-Step5. Find euler angles(q4, q5, q6).
-
-Find q4, q5, q6.
-
-![alt text][image2]
+theta5 = atan2(sqrt(R3_6[0,2]**2 + R3_6[2,2]**2), R3_6[1,2])
+theta4 = atan2(R3_6[2,2], -R3_6[0,2])
+theta6 = atan2(-R3_6[1,1], R3_6[1,0])
+```
 
 ### Project Implementation
 
-#### 1. Fill in the `IK_server.py` file with properly commented python code for calculating Inverse Kinematics based on previously performed Kinematic Analysis. Your code must guide the robot to successfully complete 8/10 pick and place cycles. Briefly discuss the code you implemented and your results.
+#### Fill in the `IK_server.py` file with properly commented python code for calculating Inverse Kinematics based on previously performed Kinematic Analysis. Your code must guide the robot to successfully complete 8/10 pick and place cycles. Briefly discuss the code you implemented and your results.
 
+I examined my implementation through try and errors. And I finally figured out that adding condition clauses showed better performance.
 
-Here I'll talk about the code, what techniques I used, what worked and why, where the implementation might fail and how I might improve it if I were going to pursue this project further.  
+```python
+if sin(theta5) > 0:
+    theta4 = atan2(R3_6[2,2], -R3_6[0,2])
+    theta6 = atan2(-R3_6[1,1], R3_6[1,0])
+else:
+    theta4 = atan2(-R3_6[2,2], R3_6[0,2])
+    theta6 = atan2(R3_6[1,1], -R3_6[1,0])
 
+if x >= len(req.poses):
+    theta5 = theta5_temp
+    theta6 = theta6_temp
 
-And just for fun, another example image:
-![alt text][image3]
+theta5_temp = theta5
+theta6_temp = theta6
+```
+
+Screenshot from my result:
+![alt text][image2]
